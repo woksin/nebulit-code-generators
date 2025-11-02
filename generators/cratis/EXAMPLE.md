@@ -67,9 +67,7 @@ Library/
 ├── Features/
 │   └── Inventory/
 │       └── AddBook/
-│           ├── AddBook.cs        # Command
-│           ├── BookAdded.cs      # Event
-│           ├── AddBookRules.cs   # Validation Rules
+│           ├── AddBook.cs        # Command + Event + Rules (all in one file)
 │           └── Books.cs          # Read Model + Projection + Queries
 ├── Specs/
 │   └── Inventory/
@@ -81,31 +79,42 @@ Library/
 └── Library.csproj
 ```
 
-### Generated Command (AddBook.cs)
+### Generated Command, Event, and Rules (AddBook.cs)
+
+All command-related code is in a single file:
+
 ```csharp
 namespace Library.Inventory.AddBook;
 
+/// <summary>
+/// Represents the command to AddBook.
+/// </summary>
+/// <param name="string Title, string ISBN, Guid AuthorId">The command parameters.</param>
 [Command]
 public record AddBook(string Title, string ISBN, Guid AuthorId)
 {
+    /// <summary>
+    /// Handles the command and returns the resulting event.
+    /// </summary>
+    /// <returns>The BookAdded event.</returns>
     public BookAdded Handle() => new(Title, ISBN, AuthorId);
 }
-```
 
-### Generated Event (BookAdded.cs)
-```csharp
-namespace Library.Inventory.AddBook;
-
+/// <summary>
+/// Represents the event that is raised when BookAdded.
+/// </summary>
+/// <param name="string Title, string ISBN, Guid AuthorId">The event data.</param>
 [EventType]
 public record BookAdded(string Title, string ISBN, Guid AuthorId);
-```
 
-### Generated Rules (AddBookRules.cs)
-```csharp
-namespace Library.Inventory.AddBook;
-
+/// <summary>
+/// Represents the validation rules for AddBook.
+/// </summary>
 public class AddBookRules : AbstractValidator<AddBook>
 {
+    /// <summary>
+    /// Initializes a new instance of the <AddBookRules> class.
+    /// </summary>
     public AddBookRules()
     {
         RuleFor(cmd => cmd.Title).NotEmpty();

@@ -124,9 +124,7 @@ YourApp/
 ├── Features/
 │   └── {Chapter}/              # Chapter = context from config
 │       └── {Slice}/            # Slice = title from config
-│           ├── Command.cs      # Command with [Command] attribute
-│           ├── Event.cs        # Event with [EventType] attribute
-│           └── CommandRules.cs # FluentValidation rules
+│           └── Command.cs      # Command + Event + Rules (all in one file)
 ├── Specs/
 │   └── {Chapter}/
 │       └── {Slice}/
@@ -162,28 +160,34 @@ The generator extracts the chapter from the slice's `context` field in config.js
 
 ## Commands and Events
 
-Commands are defined with the `[Command]` attribute and include a `Handle()` method that returns an event:
+## Commands, Events, and Validation Rules
+
+All command-related code is generated in a single file per slice:
 
 ```csharp
+namespace YourApp.Chapter.Slice;
+
+/// <summary>
+/// Represents the command to AddBook.
+/// </summary>
 [Command]
 public record AddBook(string Title, string ISBN, Guid AuthorId)
 {
+    /// <summary>
+    /// Handles the command and returns the resulting event.
+    /// </summary>
     public BookAdded Handle() => new(Title, ISBN, AuthorId);
 }
-```
 
-Events are defined with the `[EventType]` attribute:
-
-```csharp
+/// <summary>
+/// Represents the event that is raised when BookAdded.
+/// </summary>
 [EventType]
 public record BookAdded(string Title, string ISBN, Guid AuthorId);
-```
 
-## Validation Rules
-
-Each command automatically gets a FluentValidation rules class:
-
-```csharp
+/// <summary>
+/// Represents the validation rules for AddBook.
+/// </summary>
 public class AddBookRules : AbstractValidator<AddBook>
 {
     public AddBookRules()

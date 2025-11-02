@@ -40,9 +40,7 @@ module.exports = class extends Generator {
 
     _writeSingleSlice(sliceName) {
         var slice = this._findSlice(sliceName)
-        this._writeCommands(slice);
-        this._writeEvents(slice)
-        this._writeRules(slice)
+        this._writeSlice(slice);
         this._writeReadModels(slice)
         this.composeWith(require.resolve('../specifications'), {
             answers: {...this.answers, ...this.givenAnswers, slice: sliceName},
@@ -50,13 +48,21 @@ module.exports = class extends Generator {
         });
     }
 
-    _writeCommands(slice) {
+    _writeSlice(slice) {
         var chapter = this._getChapter(slice)
         var sliceFolder = this._getSliceFolder(slice)
 
+        // Write one file per command that includes command, event, and rules
         slice.commands?.filter((command) => command.title).forEach((command) => {
+            var eventDep = command.dependencies?.find(d => d.type === "OUTBOUND" && d.elementType === "EVENT")
+            var eventName = this._eventName(eventDep?.title || command.title + "Event")
+            
+            // Get the event fields - if event exists, use its fields, otherwise use command fields
+            var event = slice.events?.find(e => e.id === eventDep?.id)
+            var eventFields = event ? this._generateFields(event.fields) : this._generateFields(command.fields)
+
             this.fs.copyTpl(
-                this.templatePath(`src/Command.cs.tpl`),
+                this.templatePath(`src/Slice.cs.tpl`),
                 this.destinationPath(`./Features/${chapter}/${sliceFolder}/${this._commandName(command.title)}.cs`),
                 {
                     rootNamespace: this.givenAnswers.rootNamespace,
@@ -64,45 +70,8 @@ module.exports = class extends Generator {
                     sliceFolder: sliceFolder,
                     commandName: this._commandName(command.title),
                     fields: this._generateFields(command.fields),
-                    eventName: this._eventName(command.dependencies?.find(d => d.type === "OUTBOUND" && d.elementType === "EVENT")?.title || command.title + "Event"),
-                    eventFields: this._generateEventFields(command.fields)
-                }
-            )
-        })
-    }
-
-    _writeEvents(slice) {
-        var chapter = this._getChapter(slice)
-        var sliceFolder = this._getSliceFolder(slice)
-
-        slice.events?.filter((event) => event.title && event.context !== "EXTERNAL").forEach((event) => {
-            this.fs.copyTpl(
-                this.templatePath(`src/Event.cs.tpl`),
-                this.destinationPath(`./Features/${chapter}/${sliceFolder}/${this._eventName(event.title)}.cs`),
-                {
-                    rootNamespace: this.givenAnswers.rootNamespace,
-                    chapter: chapter,
-                    sliceFolder: sliceFolder,
-                    eventName: this._eventName(event.title),
-                    fields: this._generateFields(event.fields)
-                }
-            )
-        })
-    }
-
-    _writeRules(slice) {
-        var chapter = this._getChapter(slice)
-        var sliceFolder = this._getSliceFolder(slice)
-
-        slice.commands?.filter((command) => command.title).forEach((command) => {
-            this.fs.copyTpl(
-                this.templatePath(`src/Rule.cs.tpl`),
-                this.destinationPath(`./Features/${chapter}/${sliceFolder}/${this._commandName(command.title)}Rules.cs`),
-                {
-                    rootNamespace: this.givenAnswers.rootNamespace,
-                    chapter: chapter,
-                    sliceFolder: sliceFolder,
-                    commandName: this._commandName(command.title),
+                    eventName: eventName,
+                    eventFields: eventFields,
                     rules: this._generateRules(command.fields)
                 }
             )
