@@ -2,7 +2,6 @@
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Cratis.Chronicle.Projections;
-<%= eventsImport %>
 using MongoDB.Driver;
 
 namespace <%= rootNamespace %>.<%= chapter %>.<%= sliceFolder %>;
@@ -24,10 +23,8 @@ public class <%= readModelName %>Projection : IProjectionFor<<%= readModelName %
     /// <param name="builder">The projection builder.</param>
     public void Define(IProjectionBuilderFor<<%= readModelName %>> builder)
     {
-        builder.AutoMap()<%
-        eventNames.forEach(function(eventName) { %>
-            .From<<%= eventName %>>()<% 
-        }); %>;
+        var projection = builder.AutoMap();<% eventNames.forEach(function(eventName) { %>
+        projection.From<<%= eventName %>>();<% }); %>
     }
 }
 

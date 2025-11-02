@@ -64,7 +64,7 @@ module.exports = class extends Generator {
                     sliceFolder: sliceFolder,
                     commandName: this._commandName(command.title),
                     fields: this._generateFields(command.fields),
-                    eventName: this._eventName(command.dependencies?.find(d => d.type === "OUTBOUND" && d.elementType === "EVENT")?.title || command.title + "d"),
+                    eventName: this._eventName(command.dependencies?.find(d => d.type === "OUTBOUND" && d.elementType === "EVENT")?.title || command.title + "Event"),
                     eventFields: this._generateEventFields(command.fields)
                 }
             )
@@ -128,8 +128,7 @@ module.exports = class extends Generator {
                     sliceFolder: sliceFolder,
                     readModelName: this._pascalCase(readmodel.title),
                     fields: this._generateFields(readmodel.fields),
-                    eventNames: eventNames,
-                    eventsImport: eventNames.length > 0 ? `using ${this.givenAnswers.rootNamespace}.${chapter}.${sliceFolder};` : ''
+                    eventNames: eventNames
                 }
             )
         })
