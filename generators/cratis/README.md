@@ -162,28 +162,55 @@ The generator extracts the chapter from the slice's `context` field in config.js
 
 ## Commands, Events, and Validation Rules
 
-All command-related code is generated in a single file per slice:
+All command-related code is generated in a single file per slice with ConceptAs types:
 
 ```csharp
 namespace YourApp.Chapter.Slice;
 
 /// <summary>
+/// Represents the title concept.
+/// </summary>
+public record Title(string Value) : ConceptAs<string>(Value)
+{
+    public static implicit operator Title(string value) => new(value);
+    public static implicit operator string(Title concept) => concept.Value;
+}
+
+/// <summary>
+/// Represents the isbn concept.
+/// </summary>
+public record Isbn(string Value) : ConceptAs<string>(Value)
+{
+    public static implicit operator Isbn(string value) => new(value);
+    public static implicit operator string(Isbn concept) => concept.Value;
+}
+
+/// <summary>
+/// Represents the authorId concept.
+/// </summary>
+public record AuthorId(Guid Value) : ConceptAs<Guid>(Value)
+{
+    public static implicit operator AuthorId(Guid value) => new(value);
+    public static implicit operator Guid(AuthorId concept) => concept.Value;
+}
+
+/// <summary>
 /// Represents the command to AddBook.
 /// </summary>
 [Command]
-public record AddBook(string Title, string ISBN, Guid AuthorId)
+public record AddBook(Title Title, Isbn Isbn, AuthorId AuthorId)
 {
     /// <summary>
     /// Handles the command and returns the resulting event.
     /// </summary>
-    public BookAdded Handle() => new(Title, ISBN, AuthorId);
+    public BookAdded Handle() => new(Title, Isbn, AuthorId);
 }
 
 /// <summary>
 /// Represents the event that is raised when BookAdded.
 /// </summary>
 [EventType]
-public record BookAdded(string Title, string ISBN, Guid AuthorId);
+public record BookAdded(Title Title, Isbn Isbn, AuthorId AuthorId);
 
 /// <summary>
 /// Represents the validation rules for AddBook.
@@ -193,11 +220,16 @@ public class AddBookRules : AbstractValidator<AddBook>
     public AddBookRules()
     {
         RuleFor(cmd => cmd.Title).NotEmpty();
-        RuleFor(cmd => cmd.ISBN).NotEmpty();
+        RuleFor(cmd => cmd.Isbn).NotEmpty();
         RuleFor(cmd => cmd.AuthorId).NotEmpty();
     }
 }
 ```
+
+Fields are wrapped as **ConceptAs** types following Cratis best practices:
+- Strong typing prevents field mix-ups
+- Implicit operators for seamless conversion to/from primitives
+- Better domain language in code
 
 ## Specifications
 

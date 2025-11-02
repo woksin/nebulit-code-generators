@@ -81,31 +81,56 @@ Library/
 
 ### Generated Command, Event, and Rules (AddBook.cs)
 
-All command-related code is in a single file:
+All command-related code is in a single file with ConceptAs types:
 
 ```csharp
 namespace Library.Inventory.AddBook;
 
 /// <summary>
+/// Represents the title concept.
+/// </summary>
+public record Title(string Value) : ConceptAs<string>(Value)
+{
+    public static implicit operator Title(string value) => new(value);
+    public static implicit operator string(Title concept) => concept.Value;
+}
+
+/// <summary>
+/// Represents the isbn concept.
+/// </summary>
+public record Isbn(string Value) : ConceptAs<string>(Value)
+{
+    public static implicit operator Isbn(string value) => new(value);
+    public static implicit operator string(Isbn concept) => concept.Value;
+}
+
+/// <summary>
+/// Represents the authorId concept.
+/// </summary>
+public record AuthorId(Guid Value) : ConceptAs<Guid>(Value)
+{
+    public static implicit operator AuthorId(Guid value) => new(value);
+    public static implicit operator Guid(AuthorId concept) => concept.Value;
+}
+
+/// <summary>
 /// Represents the command to AddBook.
 /// </summary>
-/// <param name="string Title, string ISBN, Guid AuthorId">The command parameters.</param>
 [Command]
-public record AddBook(string Title, string ISBN, Guid AuthorId)
+public record AddBook(Title Title, Isbn Isbn, AuthorId AuthorId)
 {
     /// <summary>
     /// Handles the command and returns the resulting event.
     /// </summary>
     /// <returns>The BookAdded event.</returns>
-    public BookAdded Handle() => new(Title, ISBN, AuthorId);
+    public BookAdded Handle() => new(Title, Isbn, AuthorId);
 }
 
 /// <summary>
 /// Represents the event that is raised when BookAdded.
 /// </summary>
-/// <param name="string Title, string ISBN, Guid AuthorId">The event data.</param>
 [EventType]
-public record BookAdded(string Title, string ISBN, Guid AuthorId);
+public record BookAdded(Title Title, Isbn Isbn, AuthorId AuthorId);
 
 /// <summary>
 /// Represents the validation rules for AddBook.
@@ -118,7 +143,7 @@ public class AddBookRules : AbstractValidator<AddBook>
     public AddBookRules()
     {
         RuleFor(cmd => cmd.Title).NotEmpty();
-        RuleFor(cmd => cmd.ISBN).NotEmpty();
+        RuleFor(cmd => cmd.Isbn).NotEmpty();
         RuleFor(cmd => cmd.AuthorId).NotEmpty();
     }
 }
