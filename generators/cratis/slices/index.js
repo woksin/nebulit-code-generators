@@ -59,7 +59,11 @@ module.exports = class extends Generator {
             
             // Get the event fields - if event exists, use its fields, otherwise use command fields
             var event = slice.events?.find(e => e.id === eventDep?.id)
-            var eventFields = event ? this._generateFields(event.fields) : this._generateFields(command.fields)
+            var eventFieldsRaw = event ? event.fields : command.fields
+            
+            // Generate concept definitions for all unique fields
+            var allFields = this._collectUniqueFields(command.fields, eventFieldsRaw)
+            var conceptDefinitions = this._generateConceptDefinitions(allFields)
 
             this.fs.copyTpl(
                 this.templatePath(`src/Slice.cs.tpl`),
@@ -69,12 +73,43 @@ module.exports = class extends Generator {
                     chapter: chapter,
                     sliceFolder: sliceFolder,
                     commandName: this._commandName(command.title),
-                    fields: this._generateFields(command.fields),
+                    fields: this._generateFieldsWithConcepts(command.fields),
                     eventName: eventName,
-                    eventFields: eventFields,
-                    rules: this._generateRules(command.fields)
+                    eventFields: this._generateFieldsWithConcepts(eventFieldsRaw),
+                    rules: this._generateRules(command.fields),
+                    conceptDefinitions: conceptDefinitions
                 }
             )
+        })
+    }
+
+    _collectUniqueFields(commandFields, eventFields) {
+        var fieldMap = new Map()
+        var addFields = (fields) => {
+            if (!fields) return
+            fields.forEach(f => {
+                if (!fieldMap.has(f.name)) {
+                    fieldMap.set(f.name, f)
+                }
+            })
+        }
+        addFields(commandFields)
+        addFields(eventFields)
+        return Array.from(fieldMap.values())
+    }
+
+    _generateConceptDefinitions(fields) {
+        if (!fields || fields.length === 0) return []
+        return fields.map(f => {
+            let primitiveType = this._mapType(f.type, f.cardinality)
+            let conceptName = this._pascalCase(f.name)
+            let description = `the ${f.name} concept`
+            
+            return {
+                name: conceptName,
+                primitiveType: primitiveType,
+                description: description
+            }
         })
     }
 
@@ -134,6 +169,15 @@ module.exports = class extends Generator {
             let type = this._mapType(f.type, f.cardinality)
             let nullable = f.optional ? "?" : ""
             return `${type}${nullable} ${this._pascalCase(f.name)}`
+        }).join(', ')
+    }
+
+    _generateFieldsWithConcepts(fields) {
+        if (!fields || fields.length === 0) return ""
+        return fields.map(f => {
+            let conceptType = this._pascalCase(f.name)
+            let nullable = f.optional ? "?" : ""
+            return `${conceptType}${nullable} ${conceptType}`
         }).join(', ')
     }
 

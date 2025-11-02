@@ -1,9 +1,19 @@
 namespace <%= rootNamespace %>.<%= chapter %>.<%= sliceFolder %>;
 
+<% conceptDefinitions.forEach(function(concept) { %>
+/// <summary>
+/// Represents <%= concept.description %>.
+/// </summary>
+public record <%= concept.name %>(<%= concept.primitiveType %> Value) : ConceptAs<<%= concept.primitiveType %>>(Value)
+{
+    public static implicit operator <%= concept.name %>(<%= concept.primitiveType %> value) => new(value);
+    public static implicit operator <%= concept.primitiveType %>(<%= concept.name %> concept) => concept.Value;
+}
+
+<% }); %>
 /// <summary>
 /// Represents the command to <%= commandName %>.
 /// </summary>
-/// <param name="<%= fields %>">The command parameters.</param>
 [Command]
 public record <%= commandName %>(<%= fields %>)
 {
@@ -17,7 +27,6 @@ public record <%= commandName %>(<%= fields %>)
 /// <summary>
 /// Represents the event that is raised when <%= eventName %>.
 /// </summary>
-/// <param name="<%= eventFields %>">The event data.</param>
 [EventType]
 public record <%= eventName %>(<%= eventFields %>);
 
