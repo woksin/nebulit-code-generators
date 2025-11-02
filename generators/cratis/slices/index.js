@@ -61,15 +61,26 @@ module.exports = class extends Generator {
             var event = slice.events?.find(e => e.id === eventDep?.id)
             var eventFieldsRaw = event ? event.fields : command.fields
             
+            // Check if command belongs to an aggregate
+            var aggregateName = command.aggregateDependencies && command.aggregateDependencies.length > 0 
+                ? command.aggregateDependencies[0] 
+                : null
+            
+            var aggregate = aggregateName ? this._findAggregate(aggregateName) : null
+            var aggregateIdField = aggregate ? this._getAggregateIdField(aggregate) : null
+            
             // Generate concept definitions for all unique fields
             var allFields = this._collectUniqueFields(command.fields, eventFieldsRaw)
-            var conceptDefinitions = this._generateConceptDefinitions(allFields)
+            var conceptDefinitions = this._generateConceptDefinitions(allFields, aggregateIdField)
             
             // Generate command-specific rules (not basic field validation)
             var commandRules = this._generateCommandRules(command.fields)
             
             // Get specifications for this slice and generate rule classes
             var specifications = this._generateSpecifications(slice.specifications, this._commandName(command.title))
+            
+            // Determine command attributes
+            var commandAttributes = this._generateCommandAttributes(aggregateName, chapter)
 
             this.fs.copyTpl(
                 this.templatePath(`src/Slice.cs.tpl`),
@@ -84,7 +95,8 @@ module.exports = class extends Generator {
                     eventFields: this._generateFieldsWithConcepts(eventFieldsRaw),
                     commandRules: commandRules,
                     conceptDefinitions: conceptDefinitions,
-                    specifications: specifications
+                    specifications: specifications,
+                    commandAttributes: commandAttributes
                 }
             )
         })
@@ -105,17 +117,23 @@ module.exports = class extends Generator {
         return Array.from(fieldMap.values())
     }
 
-    _generateConceptDefinitions(fields) {
+    _generateConceptDefinitions(fields, aggregateIdField) {
         if (!fields || fields.length === 0) return []
         return fields.map(f => {
             let primitiveType = this._mapType(f.type, f.cardinality)
             let conceptName = this._pascalCase(f.name)
             let description = `the ${f.name} concept`
             
+            // Check if this is the aggregate ID field
+            let isAggregateId = aggregateIdField && 
+                (f.name.toLowerCase() === aggregateIdField.name.toLowerCase() || 
+                 f.idAttribute === true)
+            
             return {
                 name: conceptName,
                 primitiveType: primitiveType,
-                description: description
+                description: description,
+                isEventSourceId: isAggregateId
             }
         })
     }
@@ -242,6 +260,33 @@ module.exports = class extends Generator {
                 then: spec.then || ''
             }
         })
+    }
+    
+    _findAggregate(aggregateName) {
+        if (!config.aggregates) return null
+        return config.aggregates.find(agg => 
+            agg.title.toLowerCase() === aggregateName.toLowerCase()
+        )
+    }
+    
+    _getAggregateIdField(aggregate) {
+        if (!aggregate || !aggregate.fields) return null
+        return aggregate.fields.find(f => f.idAttribute === true) || 
+               aggregate.fields.find(f => f.name.toLowerCase().includes('id'))
+    }
+    
+    _generateCommandAttributes(aggregateName, chapter) {
+        const attributes = []
+        
+        if (aggregateName) {
+            attributes.push(`[EventSourceType("${aggregateName}")]`)
+        }
+        
+        if (chapter && chapter !== "Default") {
+            attributes.push(`[EventStreamType("${chapter}")]`)
+        }
+        
+        return attributes.join('\n')
     }
 
     _findSlice(sliceName) {

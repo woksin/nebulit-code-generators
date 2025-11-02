@@ -1,6 +1,16 @@
 namespace <%= rootNamespace %>.<%= chapter %>.<%= sliceFolder %>;
 
 <% conceptDefinitions.forEach(function(concept) { %>
+<% if (concept.isEventSourceId) { %>
+/// <summary>
+/// Represents <%= concept.description %> as an event source identifier.
+/// </summary>
+public record <%= concept.name %>(<%= concept.primitiveType %> Value) : EventSourceId(Value)
+{
+    public static implicit operator <%= concept.name %>(<%= concept.primitiveType %> value) => new(value);
+    public static implicit operator <%= concept.primitiveType %>(<%= concept.name %> id) => id.Value;
+}
+<% } else { %>
 /// <summary>
 /// Represents <%= concept.description %>.
 /// </summary>
@@ -20,12 +30,14 @@ public class <%= concept.name %>Validator : ConceptValidator<<%= concept.name %>
         RuleFor(c => c.Value).NotEmpty();
     }
 }
+<% } %>
 
 <% }); %>
 /// <summary>
 /// Represents the command to <%= commandName %>.
 /// </summary>
-[Command]
+<% if (commandAttributes) { %><%= commandAttributes %>
+<% } %>[Command]
 public record <%= commandName %>(<%= fields %>)
 {
     /// <summary>
