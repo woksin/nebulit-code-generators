@@ -1,13 +1,6 @@
-namespace <%= namespace %>.<%= chapter %>.<%= aggregateName %>;
+namespace <%= namespace %>.<%= chapter %>;
 
-<% if (hasState) { %>
-public record <%= aggregateName %>State
-{
-<%= stateProperties %>
-}
-
-<% } %>
-public class <%= aggregateName %> : AggregateRoot<<% if (hasState) { %><%= aggregateName %>State<% } else { %>AggregateState<% } %>>
+public class <%= aggregateName %> : AggregateRoot
 {
 <%= commandHandlers %>
 }
