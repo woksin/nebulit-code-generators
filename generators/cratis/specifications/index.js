@@ -28,6 +28,7 @@ module.exports = class extends Generator {
         var chapter = this._getChapter(slice)
         var sliceFolder = this._getSliceFolder(slice)
 
+        // Write specs for commands
         slice.commands?.filter((command) => command.title).forEach((command) => {
             this.fs.copyTpl(
                 this.templatePath(`Spec.cs.tpl`),
@@ -37,10 +38,31 @@ module.exports = class extends Generator {
                     chapter: chapter,
                     sliceFolder: sliceFolder,
                     commandName: this._commandName(command.title),
-                    eventName: this._eventName(command.dependencies?.find(d => d.type === "OUTBOUND" && d.elementType === "EVENT")?.title || command.title + "d")
+                    eventName: this._eventName(command.dependencies?.find(d => d.type === "OUTBOUND" && d.elementType === "EVENT")?.title || command.title + "Event")
                 }
             )
         })
+
+        // Write specs for specifications (given-when-then scenarios)
+        if (slice.specifications && slice.specifications.length > 0) {
+            slice.specifications.forEach((spec) => {
+                var specClassName = this._pascalCase(spec.title || 'Specification')
+                this.fs.copyTpl(
+                    this.templatePath(`SpecificationSpec.cs.tpl`),
+                    this.destinationPath(`./Specs/${chapter}/${sliceFolder}/${specClassName}Specs.cs`),
+                    {
+                        rootNamespace: this.givenAnswers.rootNamespace,
+                        chapter: chapter,
+                        sliceFolder: sliceFolder,
+                        specTitle: spec.title || 'Specification',
+                        specClassName: specClassName,
+                        given: spec.given || 'Define preconditions',
+                        when: spec.when || 'Define action',
+                        then: spec.then || 'Define expected outcome'
+                    }
+                )
+            })
+        }
     }
 
     _getChapter(slice) {
