@@ -1,4 +1,40 @@
-## Nebulit GmbH - Eventmodeling Template
+## Nebulit GmbH - Code Generators
+
+This repository contains Yeoman generators for scaffolding event-sourced applications.
+
+## Available Generators
+
+### Axon Framework Generator (`yo nebulit:axon`)
+Generates Kotlin/Spring Boot applications using Axon Framework for event sourcing and CQRS.
+
+### Cratis Chronicle Generator (`yo nebulit:cratis`)
+Generates C#/.NET applications using Cratis Chronicle for event sourcing with ApplicationModel patterns.
+
+See [generators/cratis/README.md](generators/cratis/README.md) for detailed documentation.
+
+### Other Generators
+- `eventcatalog` - Event Catalog documentation
+- `live-prototype` - Live prototyping tools
+- `nextjs-prototype` - Next.js prototypes
+- `open-api` - OpenAPI specifications
+- `sample-generator` - Example generator template
+
+## Installation
+
+```bash
+npm install -g yo
+npm install -g @dilgerma/generator-nebulit
+```
+
+## Usage
+
+```bash
+# Axon Framework
+yo nebulit:axon
+
+# Cratis Chronicle
+yo nebulit:cratis
+```
 
 ### Setup
 
