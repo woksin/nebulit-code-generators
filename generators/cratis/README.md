@@ -177,6 +177,17 @@ public record Title(string Value) : ConceptAs<string>(Value)
 }
 
 /// <summary>
+/// Validator for Title concept.
+/// </summary>
+public class TitleValidator : ConceptValidator<Title>
+{
+    public TitleValidator()
+    {
+        RuleFor(c => c.Value).NotEmpty();
+    }
+}
+
+/// <summary>
 /// Represents the isbn concept.
 /// </summary>
 public record Isbn(string Value) : ConceptAs<string>(Value)
@@ -186,13 +197,17 @@ public record Isbn(string Value) : ConceptAs<string>(Value)
 }
 
 /// <summary>
-/// Represents the authorId concept.
+/// Validator for Isbn concept.
 /// </summary>
-public record AuthorId(Guid Value) : ConceptAs<Guid>(Value)
+public class IsbnValidator : ConceptValidator<Isbn>
 {
-    public static implicit operator AuthorId(Guid value) => new(value);
-    public static implicit operator Guid(AuthorId concept) => concept.Value;
+    public IsbnValidator()
+    {
+        RuleFor(c => c.Value).NotEmpty();
+    }
 }
+
+// Similar for AuthorId...
 
 /// <summary>
 /// Represents the command to AddBook.
@@ -212,19 +227,28 @@ public record AddBook(Title Title, Isbn Isbn, AuthorId AuthorId)
 [EventType]
 public record BookAdded(Title Title, Isbn Isbn, AuthorId AuthorId);
 
-/// <summary>
-/// Represents the validation rules for AddBook.
-/// </summary>
-public class AddBookRules : AbstractValidator<AddBook>
-{
-    public AddBookRules()
-    {
-        RuleFor(cmd => cmd.Title).NotEmpty();
-        RuleFor(cmd => cmd.Isbn).NotEmpty();
-        RuleFor(cmd => cmd.AuthorId).NotEmpty();
-    }
-}
+// Command-specific rules (optional, only generated if needed)
+// Basic field validation is handled by ConceptValidators above
 ```
+
+## Validation Strategy
+
+The generator creates a **three-tier validation approach**:
+
+1. **ConceptValidators**: Basic field validation at the concept level
+   - Each concept has its own validator (e.g., `TitleValidator`)
+   - Handles required fields, format validation, etc.
+   - Validates the primitive value within the concept
+
+2. **Command Rules** (optional): Command-specific business rules
+   - Only generated when business logic validation is needed
+   - For cross-field validation or complex business rules
+   - Separated from basic field validation
+
+3. **Specifications as Rules**: Domain rules from config.json
+   - If specifications exist, generates `Rule<T>` classes
+   - Follows given-when-then pattern
+   - Uses Cratis rule engine for business logic
 
 Fields are wrapped as **ConceptAs** types following Cratis best practices:
 - Strong typing prevents field mix-ups

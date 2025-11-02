@@ -81,7 +81,7 @@ Library/
 
 ### Generated Command, Event, and Rules (AddBook.cs)
 
-All command-related code is in a single file with ConceptAs types:
+All command-related code is in a single file with ConceptAs types and validators:
 
 ```csharp
 namespace Library.Inventory.AddBook;
@@ -96,6 +96,17 @@ public record Title(string Value) : ConceptAs<string>(Value)
 }
 
 /// <summary>
+/// Validator for Title concept.
+/// </summary>
+public class TitleValidator : ConceptValidator<Title>
+{
+    public TitleValidator()
+    {
+        RuleFor(c => c.Value).NotEmpty();
+    }
+}
+
+/// <summary>
 /// Represents the isbn concept.
 /// </summary>
 public record Isbn(string Value) : ConceptAs<string>(Value)
@@ -105,12 +116,34 @@ public record Isbn(string Value) : ConceptAs<string>(Value)
 }
 
 /// <summary>
+/// Validator for Isbn concept.
+/// </summary>
+public class IsbnValidator : ConceptValidator<Isbn>
+{
+    public IsbnValidator()
+    {
+        RuleFor(c => c.Value).NotEmpty();
+    }
+}
+
+/// <summary>
 /// Represents the authorId concept.
 /// </summary>
 public record AuthorId(Guid Value) : ConceptAs<Guid>(Value)
 {
     public static implicit operator AuthorId(Guid value) => new(value);
     public static implicit operator Guid(AuthorId concept) => concept.Value;
+}
+
+/// <summary>
+/// Validator for AuthorId concept.
+/// </summary>
+public class AuthorIdValidator : ConceptValidator<AuthorId>
+{
+    public AuthorIdValidator()
+    {
+        RuleFor(c => c.Value).NotEmpty();
+    }
 }
 
 /// <summary>
@@ -132,21 +165,8 @@ public record AddBook(Title Title, Isbn Isbn, AuthorId AuthorId)
 [EventType]
 public record BookAdded(Title Title, Isbn Isbn, AuthorId AuthorId);
 
-/// <summary>
-/// Represents the validation rules for AddBook.
-/// </summary>
-public class AddBookRules : AbstractValidator<AddBook>
-{
-    /// <summary>
-    /// Initializes a new instance of the <AddBookRules> class.
-    /// </summary>
-    public AddBookRules()
-    {
-        RuleFor(cmd => cmd.Title).NotEmpty();
-        RuleFor(cmd => cmd.Isbn).NotEmpty();
-        RuleFor(cmd => cmd.AuthorId).NotEmpty();
-    }
-}
+// Note: Command-specific rules would only be generated if business logic validation is needed
+// Basic field validation is handled by the ConceptValidators above
 ```
 
 ### Generated Read Model (Books.cs)
