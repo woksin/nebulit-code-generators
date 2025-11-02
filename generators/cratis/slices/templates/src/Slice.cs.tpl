@@ -10,6 +10,17 @@ public record <%= concept.name %>(<%= concept.primitiveType %> Value) : ConceptA
     public static implicit operator <%= concept.primitiveType %>(<%= concept.name %> concept) => concept.Value;
 }
 
+/// <summary>
+/// Validator for <%= concept.name %> concept.
+/// </summary>
+public class <%= concept.name %>Validator : ConceptValidator<<%= concept.name %>>
+{
+    public <%= concept.name %>Validator()
+    {
+        RuleFor(c => c.Value).NotEmpty();
+    }
+}
+
 <% }); %>
 /// <summary>
 /// Represents the command to <%= commandName %>.
@@ -30,16 +41,33 @@ public record <%= commandName %>(<%= fields %>)
 [EventType]
 public record <%= eventName %>(<%= eventFields %>);
 
+<% if (commandRules && commandRules.length > 0) { %>
 /// <summary>
-/// Represents the validation rules for <%= commandName %>.
+/// Command-specific validation rules for <%= commandName %>.
 /// </summary>
 public class <%= commandName %>Rules : AbstractValidator<<%= commandName %>>
 {
-    /// <summary>
-    /// Initializes a new instance of the <<%= commandName %>Rules> class.
-    /// </summary>
     public <%= commandName %>Rules()
     {
-<%= rules %>
+<%= commandRules %>
     }
 }
+<% } %>
+<% if (specifications && specifications.length > 0) { %>
+<% specifications.forEach(function(spec) { %>
+
+/// <summary>
+/// Rule: <%= spec.title %>
+/// </summary>
+public class <%= spec.className %> : Rule<<%= commandName %>>
+{
+    public override void Define()
+    {
+        // TODO: Implement rule logic based on specification
+        // Given: <%= spec.given || 'Define preconditions' %>
+        // When: <%= spec.when || 'Define trigger condition' %>
+        // Then: <%= spec.then || 'Define expected outcome' %>
+    }
+}
+<% }); %>
+<% } %>

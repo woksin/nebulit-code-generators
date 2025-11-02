@@ -64,6 +64,12 @@ module.exports = class extends Generator {
             // Generate concept definitions for all unique fields
             var allFields = this._collectUniqueFields(command.fields, eventFieldsRaw)
             var conceptDefinitions = this._generateConceptDefinitions(allFields)
+            
+            // Generate command-specific rules (not basic field validation)
+            var commandRules = this._generateCommandRules(command.fields)
+            
+            // Get specifications for this slice and generate rule classes
+            var specifications = this._generateSpecifications(slice.specifications, this._commandName(command.title))
 
             this.fs.copyTpl(
                 this.templatePath(`src/Slice.cs.tpl`),
@@ -76,8 +82,9 @@ module.exports = class extends Generator {
                     fields: this._generateFieldsWithConcepts(command.fields),
                     eventName: eventName,
                     eventFields: this._generateFieldsWithConcepts(eventFieldsRaw),
-                    rules: this._generateRules(command.fields),
-                    conceptDefinitions: conceptDefinitions
+                    commandRules: commandRules,
+                    conceptDefinitions: conceptDefinitions,
+                    specifications: specifications
                 }
             )
         })
@@ -213,6 +220,28 @@ module.exports = class extends Generator {
             let fieldName = this._pascalCase(f.name)
             return `        RuleFor(cmd => cmd.${fieldName}).NotEmpty();`
         }).join('\n')
+    }
+
+    _generateCommandRules(fields) {
+        // For now, leave empty for command-specific rules
+        // User can add custom business logic rules here
+        // Basic field validation is handled by ConceptValidators
+        return ""
+    }
+
+    _generateSpecifications(specifications, commandName) {
+        if (!specifications || specifications.length === 0) return []
+        
+        return specifications.map(spec => {
+            let className = this._pascalCase(spec.title || 'Specification') + 'Rule'
+            return {
+                title: spec.title || 'Specification',
+                className: className,
+                given: spec.given || '',
+                when: spec.when || '',
+                then: spec.then || ''
+            }
+        })
     }
 
     _findSlice(sliceName) {
