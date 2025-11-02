@@ -43,6 +43,7 @@ module.exports = class extends Generator {
         this._writeCommands(slice);
         this._writeEvents(slice)
         this._writeRules(slice)
+        this._writeReadModels(slice)
         this.composeWith(require.resolve('../specifications'), {
             answers: {...this.answers, ...this.givenAnswers, slice: sliceName},
             appName: this.answers.appName ?? this.appName
@@ -103,6 +104,32 @@ module.exports = class extends Generator {
                     sliceFolder: sliceFolder,
                     commandName: this._commandName(command.title),
                     rules: this._generateRules(command.fields)
+                }
+            )
+        })
+    }
+
+    _writeReadModels(slice) {
+        var chapter = this._getChapter(slice)
+        var sliceFolder = this._getSliceFolder(slice)
+
+        slice.readmodels?.filter((readmodel) => readmodel.title).forEach((readmodel) => {
+            // Get events that feed into this read model
+            var eventIds = readmodel.dependencies?.filter(d => d.type === "INBOUND" && d.elementType === "EVENT").map(d => d.id) || []
+            var events = slice.events?.filter(e => eventIds.includes(e.id)) || []
+            var eventNames = events.map(e => this._eventName(e.title))
+
+            this.fs.copyTpl(
+                this.templatePath(`src/ReadModel.cs.tpl`),
+                this.destinationPath(`./Features/${chapter}/${sliceFolder}/${this._pascalCase(readmodel.title)}.cs`),
+                {
+                    rootNamespace: this.givenAnswers.rootNamespace,
+                    chapter: chapter,
+                    sliceFolder: sliceFolder,
+                    readModelName: this._pascalCase(readmodel.title),
+                    fields: this._generateFields(readmodel.fields),
+                    eventNames: eventNames,
+                    eventsImport: eventNames.length > 0 ? `using ${this.givenAnswers.rootNamespace}.${chapter}.${sliceFolder};` : ''
                 }
             )
         })
