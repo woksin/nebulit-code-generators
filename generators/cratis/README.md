@@ -10,6 +10,7 @@ This generator creates a complete ASP.NET application structure based on Cratis 
 
 - **Skeleton Generation**: Creates complete project structure with ASP.NET Core, Cratis Chronicle, and testing setup
 - **Slice Generation**: Generates vertical slices with Commands, Events, Rules, and Specifications
+- **Aggregate Generation**: Creates AggregateRoot classes with command handlers and event sourcing handlers
 - **Chapter Organization**: Organizes features into chapters (contexts) and slices
 - **Validation Rules**: Automatic FluentValidation rule generation
 - **Specifications**: Cratis.Specifications-based test scaffolding
@@ -117,14 +118,26 @@ yo nebulit:cratis
 
 Select "slices" when prompted, then choose which slices to generate.
 
+### 4. Generate Aggregates (Optional)
+
+If your domain model includes aggregates with complex business logic, generate aggregate roots:
+
+```bash
+yo nebulit:cratis
+```
+
+Select "aggregates" when prompted, then choose which aggregate to generate and which slices it should handle commands from.
+
 ## Generated Structure
 
 ```
 YourApp/
 ├── Features/
 │   └── {Chapter}/              # Chapter = context from config
-│       └── {Slice}/            # Slice = title from config
-│           └── Command.cs      # Command + Event + Rules (all in one file)
+│       ├── {Slice}/            # Slice = title from config
+│       │   └── Command.cs      # Command + Event + Rules (all in one file)
+│       └── {Aggregate}/        # Aggregate root (optional)
+│           └── Aggregate.cs    # AggregateRoot with command handlers
 ├── Specs/
 │   └── {Chapter}/
 │       └── {Slice}/
@@ -309,3 +322,115 @@ public class AddBookSpecs : Specification<(AddBook Command, BookAdded Event)>
 ## License
 
 MIT License - Copyright (c) 2025 Nebulit GmbH
+
+## Aggregates
+
+Aggregates represent entities with complex business logic that maintain consistency boundaries. They inherit from `AggregateRoot<TState>` and handle commands by applying events.
+
+### When to Use Aggregates
+
+Use aggregates when:
+- You need complex business logic that spans multiple commands
+- You need to maintain consistency within a boundary
+- Your entity has a lifecycle managed through events
+- Commands need to validate against current state before applying changes
+
+### Aggregate Structure
+
+```csharp
+namespace YourApp.Domain.BookAggregate;
+
+public record BookState
+{
+    public string Title { get; set; }
+    public string ISBN { get; set; }
+    public int Stock { get; set; }
+}
+
+public class Book : AggregateRoot<BookState>
+{
+    public async Task Handle(AddBook.AddBook command)
+    {
+        // Business logic
+        if (IsNew)
+        {
+            Apply(new BookAdded(command.Title, command.ISBN, command.AuthorId));
+        }
+        
+        await Commit();
+    }
+    
+    private void On(BookAdded @event)
+    {
+        State.Title = @event.Title;
+        State.ISBN = @event.ISBN;
+    }
+    
+    public async Task Handle(UpdateStock.UpdateStock command)
+    {
+        // Validate against current state
+        if (State.Stock + command.Quantity < 0)
+        {
+            throw new InvalidOperationException("Insufficient stock");
+        }
+        
+        Apply(new StockUpdated(command.Quantity));
+        await Commit();
+    }
+    
+    private void On(StockUpdated @event)
+    {
+        State.Stock += @event.Quantity;
+    }
+}
+```
+
+### Config.json Structure for Aggregates
+
+```json
+{
+  "aggregates": [
+    {
+      "id": "agg-001",
+      "title": "Book",
+      "context": "Domain",
+      "fields": [
+        {
+          "name": "bookId",
+          "type": "Guid",
+          "idAttribute": true
+        },
+        {
+          "name": "title",
+          "type": "String"
+        },
+        {
+          "name": "stock",
+          "type": "Int"
+        }
+      ]
+    }
+  ],
+  "slices": [
+    {
+      "title": "slice: Add Book",
+      "commands": [
+        {
+          "title": "Add Book",
+          "aggregateDependencies": ["Book"],
+          "dependencies": [
+            {
+              "type": "OUTBOUND",
+              "elementType": "EVENT",
+              "id": "evt-001"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+The `aggregateDependencies` field links commands to aggregates, indicating which aggregate handles each command.
+
